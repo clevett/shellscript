@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Quick check to verify Active Directory bind is working.
+ADStatus=`/usr/bin/dscl '/Active Directory/(YourDomain)/All Domains' read /Groups/Domain\ Admins distinguishedName`
+ADStatus=`/bin/echo $ADStatus | /usr/bin/sed -e 's/\r//'`
+
+echo $ADStatus
+
+if [ "$ADStatus" == "dsAttTypeNative:distinguishedName: CN=,CN=,DC=,DC="  ]; then
+        Status="Valid"
+else
+        Status="Invalid"
+fi
+
+echo $Status
+
+if [ $Status == "Valid" ]; then
+    dsconfigad -remove -force -u[] -p[] | echo "Unbind workstation"
+else
+     echo "Workstation was already not bound"
+fi
