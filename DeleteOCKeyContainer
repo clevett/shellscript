@@ -1,0 +1,18 @@
+#!/bin/sh
+
+##Close Lync so its not reading hte OC_KeyContainer
+killall "Microsoft Lync"
+
+##Capture the current logged in user
+user=$(logname)
+
+##Echo the user name fo the logs
+echo $user
+
+##Show in the logs what OC Containers were present
+keys=$(ls /Users/$user/Library/Keychains/ | grep OC*)
+
+##Remove the user's OC_KeyContainer
+rm /Users/$user/Library/Keychains/OC_KeyContainer*
+
+exit
