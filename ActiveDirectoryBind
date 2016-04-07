@@ -34,9 +34,9 @@ echo "Attempting to binding to $domain"
 ADstatus=$(dsconfigad -show | grep "Active Directory Domain" | sed 's/.*\(..........\)/\1/')
 echo "Domain is now set to $ADstatus"
 
-##Add the AD Groups. Insert groups and domain below
+##Add the AD Groups. Insert your groups on line 40
 
-if [ "$ADstatus" == "" ]; then
+if [ "$ADstatus" == "$domain" ]; then
 	/usr/sbin/dsconfigad -groups ""
 	echo "Attempting to set Active Directory admin groups."
 	groupsstatus=$(dsconfigad -show | grep "Allowed*")
