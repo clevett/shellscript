@@ -1,0 +1,14 @@
+#!/bin/sh
+
+##Turn on Mobile Account Creation and verify it is on
+MobileStatus=$(dsconfigad -show | grep "Create mobile")
+
+if [ "$MobileStatus" == "  Create mobile account at login = Enabled" ]; then
+	echo "$MobileStatus is already enabled"
+else 
+	dsconfigad -mobile enable -mobileconfirm disable
+	MobileStatus=$(dsconfigad -show | grep "Create mobile*")
+	echo "Enabling mobile account creation...$MobileStatus"
+fi
+
+exit
