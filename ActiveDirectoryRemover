@@ -1,11 +1,12 @@
 #!/bin/sh
 
-# Quick check to verify Active Directory bind is working.
+# Quick check to verify Active Directory bind is working. Replace (YourDomain) with appropriate info
 ADStatus=`/usr/bin/dscl '/Active Directory/(YourDomain)/All Domains' read /Groups/Domain\ Admins distinguishedName`
 ADStatus=`/bin/echo $ADStatus | /usr/bin/sed -e 's/\r//'`
 
 echo $ADStatus
 
+#Add in appropriate path
 if [ "$ADStatus" == "dsAttTypeNative:distinguishedName: CN=,CN=,DC=,DC="  ]; then
         Status="Valid"
 else
