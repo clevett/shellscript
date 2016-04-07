@@ -1,0 +1,85 @@
+#!/bin/sh
+
+######################################
+##This script will enabled Remote Management & Remote Login.
+##It will change the computer name to the Carfax naming scheme.
+##Disable the Gatekeeper
+#######################################
+
+##Set variables for service account
+aduser=$""
+pword=$""
+oupath=$"OU=,OU=,OU=,DC=,DC="
+domain=$""
+
+##Get serial number to turn it into a computer name
+serial=$(ioreg -rd1 -c IOPlatformExpertDevice | awk -F '"' '/IOPlatformSerialNumber/{print $4}'| sed 's/.*\(.......\)/\1/')
+
+##Add prefix
+cname=$"M-$serial"
+
+##Set the machine names
+scutil --set ComputerName "$cname"
+scutil --set LocalHostName "$cname"
+scutil --set HostName "$cname"
+echo "Setting computer name $cname"
+
+##Echo the computer name set by script for JSS logs.
+computername=$(dsconfigad -show | grep "Computer Account")
+echo $computername
+
+##Bind computer to AD and echo the domain
+dsconfigad -add $domain -u $aduser -p $pword -ou $oupath -force
+echo "Attempting to binding to $domain"
+ADstatus=$(dsconfigad -show | grep "Active Directory Domain" | sed 's/.*\(..........\)/\1/')
+echo "Domain is now set to $ADstatus"
+
+##Add the AD Groups. Insert groups and domain below
+
+if [ "$ADstatus" == "" ]; then
+	/usr/sbin/dsconfigad -groups ""
+	echo "Attempting to set Active Directory admin groups."
+	groupsstatus=$(dsconfigad -show | grep "Allowed*")
+	echo "$groupsstatus"
+else
+	echo "Active Directory Domain is incorrect. Verify workstations is bound carfax.cfx"
+fi
+
+##Turn on Mobile Account Creation and verify it is on
+MobileStatus=$(dsconfigad -show | grep "Create mobile" | sed 's/.*\(.......\)/\1/')
+
+if [ "$MobileStatus" == "Enabled" ]; then
+	echo "Create mobile account at login is already $MobileStatus"
+else 
+	echo "Enabling mobile account creation..."
+	dsconfigad -mobile enable -mobileconfirm disable
+	MobileStatus=$(dsconfigad -show | grep "Create mobile*")
+	echo "$MobileStatus"
+fi
+
+##Turn on Remote Management for all users
+/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -allowAccessFor -allUsers -access -on -restart -agent -privs -all -verbose
+
+##Turn on Remote Login and verify it is on
+RemoteStatus=$(sudo systemsetup -getremotelogin | sed 's/.*\(..\)/\1/')
+
+if [ "$RemoteStatus" == "On" ]; then
+	echo "Remote Login is already on"
+else 
+	systemsetup -setremotelogin on
+	RemoteStatus=$(sudo systemsetup -getremotelogin)
+	echo "Turning on remote login...$RemoteStatus"
+fi
+
+##Set Security to open apps from anywhere. JSS will control this after enrollment.
+SecurityStatus=$(spctl --status)
+
+if [ "$SecurityStatus" == "assessments disabled" ]; then
+	echo "$SecurityStatus is already disabled"
+else 
+	spctl --master-disable
+	SecurityStatus=$(spctl --status)
+	echo "Disabling security assessments...$SecurityStatus"
+fi
+
+exit
